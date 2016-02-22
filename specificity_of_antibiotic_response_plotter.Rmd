@@ -1,0 +1,113 @@
+Checking the specificity of the antibiotic respose
+========================================================
+
+Collect merged rpg and readthrough files
+```{r} 
+library(ggplot2)
+lmono <- read.table(file="",header=T)
+lmono_rpg <- read.table(file="",header=T)
+
+```
+
+Scatter plots of genes RPKM in Listeria monocytogenes
+```{r}
+linco_gene_scatter <- ggplot(data=subset(lmono_rpg, Control>=100 | Lincomycin>=100), aes(x=log10(Control),y=log10(Lincomycin))) + 
+    geom_point(aes(size=3),color="slategrey") + 
+    scale_x_continuous(breaks=c(0,1,2,3,4,5,6)) + 
+    coord_fixed(ratio = 1) + 
+    theme_bw()
+linco_gene_scatter
+
+em_gene_scatter <- ggplot(data=subset(lmono_rpg, Control>=100 | Erythromycin>=100), aes(x=log10(Control),y=log10(Erythromycin))) + 
+    geom_point(aes(size=3),color="slategrey") + 
+    scale_x_continuous(breaks=c(0,1,2,3,4,5,6)) + 
+    coord_fixed(ratio = 1) + 
+    theme_bw()
+em_gene_scatter
+
+round(cor(x=lmono_rpg$Lincomycin,y=lmono_rpg$Control,method="pearson"),2)
+round(cor(x=lmono_rpg$Erythromycin,y=lmono_rpg$Control,method="pearson"),2)
+```
+
+Correlation matrices and correlation in gene expression
+```{r}
+library(pheatmap)
+library(reshape2)
+
+mat = as.matrix(lmono_rpg[2:dim(lmono_rpg)[1],2:dim(lmono_rpg)[2]])
+colnames(mat) = colnames(df)[2:dim(lmono_rpg)[2]]
+rownames(mat) = lmono_rpg$Locus[2:length(lmono_rpg$Locus)]
+
+cormat <- round(cor(mat),3)
+melted_cormat <- melt(cormat)
+
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri)
+melted_cormat <- na.omit(melted_cormat)
+
+# Correlation heatmap
+ggheatmap <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "firebrick3", mid = "white", 
+   midpoint = 0, limit = c(-1,1), name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+ coord_fixed()
+
+mat_plot <- ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+
+```
+
+Scatter plots of riboregulator activity (readthrough)
+```{r}
+linco <- ggplot(data=lmono,aes(x=LB_read,y=Linco_read)) + 
+    geom_point(aes(colour  = log2(Lincomycin/Control)),size=5) + 
+    scale_colour_gradient2(limits=c(-1.5,4.5),mid="slategrey",low="orange",high="red") +
+  geom_abline(intercept = 0.00,slope=1,linetype="dashed",color="gray25") + 
+  coord_fixed(ratio = 1) + 
+  theme_bw()
+
+lm.c <- cor(x=lmono$Linco_read,y=lmono$LB_read,method="spearman")
+lm.c
+
+em <- ggplot(data=lmono,aes(x=LB_read,y=Em_read)) + 
+    geom_point(aes(colour  = log2(Erythromycin/Control)),size=5) + 
+    scale_colour_gradient2(limits=c(-1.5,4.5),mid="slategrey",low="orange",high="red") +
+  geom_abline(intercept = 0.00,slope=1,linetype="dashed",color="gray25") + 
+  coord_fixed(ratio = 1) + 
+  theme_bw()
+
+em.c <- cor(x=lmono$Em_read,y=lmono$LB_read,method="spearman")
+em.c
+  
+kan <- ggplot(data=lmono,aes(x=LB_read,y=Kan_read)) + 
+    geom_point(aes(colour  = log2(Kanamycin/Control)),size=5) + 
+    scale_colour_gradient2(limits=c(-1.5,4.5), mid="slategrey",low="orange",high="red") +
+  geom_abline(intercept = 0.00,slope=1,linetype="dashed",color="gray25") + 
+  coord_fixed(ratio = 1) + 
+  theme_bw()
+
+kan.c <- cor(x=lmono$Kan_read,y=lmono$LB_read,method="spearman")
+kan.c
+  
+```
+
+
